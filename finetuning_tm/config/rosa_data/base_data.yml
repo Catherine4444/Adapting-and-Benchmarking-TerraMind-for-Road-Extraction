@@ -1,0 +1,14 @@
+class_path: custom_modules.tm_datasets.RoadDataModule
+init_args:
+  dataset_dir: /home/lxxcat004/InstaRoad/ROSADataset 
+  bands: [1,2,3,4,5,6,7,8,9,10,11,12]
+  batch_size: 8
+  num_workers: 6
+  image_size: 256
+  length: null                
+  normalize: true
+  transform_train: true
+  norm_source: manual
+  predict_split: "test"
+  norm_mean: [0.118542, 0.0900151, 0.059118, 0.23897, 0.152557, 0.207308, 0.228655, 0.246422, 0.267869, 0.204559, -12.6379, -19.5885, -11.2967, -18.2211, 690.628, 7.15673, 171.245, 1, 1, 1, 0.551126, 0.522076, 0.48006]
+  norm_std: [0.0737832, 0.0416436, 0.0296637, 0.0688163, 0.07177, 0.0614309, 0.0655398, 0.0677955, 0.103342, 0.105481, 3.53385, 3.96946, 3.24179, 3.59768, 471.217, 7.33572, 95.0004, 0, 0, 0, 0.177911, 0.147157, 0.147469]

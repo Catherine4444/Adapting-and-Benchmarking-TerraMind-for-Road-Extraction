@@ -1,0 +1,85 @@
+# terratorch iterate --hpo --config configs/hpo_unet.yml
+experiment_name: unet_decoder_hpo_runs_rosa
+storage_uri: sqlite:////home/lxxcat004/InstaRoad/runs/tm_unet/mlflow.db
+n_trials: 16           # Optuna trials per task
+run_repetitions: 3       # reruns of the best config
+save_models: false
+
+defaults:
+  trainer_args:
+    max_epochs: 20
+    check_val_every_n_epoch: 1
+    log_every_n_steps: 20
+    precision: bf16-mixed
+    enable_checkpointing: false
+  terratorch_task:
+    model_args:
+      backbone: terramind_v1_base
+      backbone_img_size: 256
+      backbone_pretrained: true
+      backbone_modalities: [S2L2A, S1GRD]
+      backbone_bands:
+        S2L2A: [RED, GREEN, BLUE, RED_EDGE_1, RED_EDGE_2, RED_EDGE_3, NIR_NARROW, NIR_BROAD, SWIR_1, SWIR_2]
+        S1GRD: [VV, VH]
+      necks:
+        - name: SelectIndices
+          indices: [2, 5, 8, 11]
+        - name: ReshapeTokensToImage
+        - name: LearnedInterpolateToPyramidal
+      decoder: UNetDecoder
+      decoder_channels: [512, 256, 128, 64]
+      num_classes: 2
+    loss: dice
+    ignore_index: -1
+    freeze_backbone: false
+    optimizer: AdamW
+    scheduler: ReduceLROnPlateau
+    scheduler_hparams:
+      patience: 4
+      factor: 0.5
+    model_factory: EncoderDecoderFactory
+    class_names: ["Background", "Road"]
+    # lr_overrides:
+    #   encoder: 1.0e-5   # backbone LR — placeholder, will be swept by Optuna below
+
+tasks:
+  - name: rosa_unet_decoder
+    type: segmentation
+    metric: val/loss
+    direction: min
+    early_prune: true
+    datamodule:
+      class_path: custom_modules.tm_datasets.RoadDataModule
+      init_args:
+        dataset_dir: /home/lxxcat004/InstaRoad/ROSADataset 
+        bands: [1,2,3,4,5,6,7,8,9,10,11,12]
+        batch_size: 8
+        num_workers: 4
+        image_size: 256
+        length: null                
+        normalize: true
+        transform_train: true
+        norm_source: manual
+        norm_mean: [0.118542, 0.0900151, 0.059118, 0.23897, 0.152557, 0.207308, 0.228655, 0.246422, 0.267869, 0.204559, -12.6379, -19.5885, -11.2967, -18.2211, 690.628, 7.15673, 171.245, 1, 1, 1, 0.551126, 0.522076, 0.48006]
+        norm_std: [0.0737832, 0.0416436, 0.0296637, 0.0688163, 0.07177, 0.0614309, 0.0655398, 0.0677955, 0.103342, 0.105481, 3.53385, 3.96946, 3.24179, 3.59768, 471.217, 7.33572, 95.0004, 0, 0, 0, 0.177911, 0.147157, 0.147469]
+
+optimization_space:
+  lr:  # this becomes the "everything else" LR — effectively your decoder LR
+    min: 1e-6
+    max: 1e-3
+    type: real
+    log: true
+  # lr_overrides:
+  #   encoder:
+  #     min: 1.0e-6
+  #     max: 1.0e-4
+  #     type: real
+  #     log: true
+  # model_args:
+    # decoder_channels:
+    #   - [512, 256, 128, 64]
+    #   - [256, 128, 64, 32]
+    #   - [128, 64, 32, 16]
+    # decoder_attention_type:
+    #   - none
+    #   - scse

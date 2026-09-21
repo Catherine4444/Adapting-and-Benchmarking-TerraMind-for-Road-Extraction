@@ -1,0 +1,85 @@
+# terratorch iterate --hpo --config configs/hpo_upernet.yml
+experiment_name: upernet_decoder_hpo_runs_rosa
+storage_uri:  sqlite:////kaggle/working/benchmark_experiments/upernet/mlflow.db
+n_trials: 1            # Optuna trials per task
+run_repetitions: 1       # reruns of the best config
+save_models: true
+
+defaults:
+  trainer_args:
+    max_epochs: 1
+    check_val_every_n_epoch: 1
+    log_every_n_steps: 20
+    precision: 16-mixed
+  terratorch_task:
+    model_args:
+      backbone: terramind_v1_base
+      backbone_img_size: 256
+      backbone_pretrained: true
+      backbone_modalities: [S2L2A, S1GRD]
+      backbone_bands:
+        S2L2A: [RED, GREEN, BLUE, RED_EDGE_1, RED_EDGE_2, RED_EDGE_3, NIR_NARROW, NIR_BROAD, SWIR_1, SWIR_2]
+        S1GRD: [VV, VH]
+      necks:
+        - name: SelectIndices
+          indices: [2, 5, 8, 11]
+        - name: ReshapeTokensToImage
+        - name: LearnedInterpolateToPyramidal
+      decoder: UperNetDecoder
+      decoder_channels: 256
+      decoder_pool_scales: [1, 2, 3, 6]
+      num_classes: 2
+    loss: dice
+    ignore_index: -1
+    freeze_backbone: false
+    optimizer: AdamW
+    scheduler: ReduceLROnPlateau
+    scheduler_hparams:
+      patience: 4
+      factor: 0.5  
+    model_factory: EncoderDecoderFactory
+    class_names: ["Background", "Road"]
+    lr_overrides:
+      encoder: 1.0e-5   # backbone LR — placeholder, will be swept by Optuna below
+
+
+tasks:
+  - name: rosa_upernet_decoder
+    type: segmentation
+    metric: val/loss
+    direction: min
+    early_prune: true
+    datamodule:
+      class_path: custom_modules.tm_datasets.RoadDataModule
+      init_args:
+        dataset_dir: /kaggle/input/datasets/kelvinwei/rosa-randomsampling/ROSA_RandomSampling110zones
+        bands: [1,2,3,4,5,6,7,8,9,10,11,12]
+        batch_size: 8
+        num_workers: 4
+        image_size: 256
+        length: null                
+        normalize: true
+        transform_train: true
+        norm_source: manual
+        norm_mean: [0.103937, 0.0818162, 0.0550145, 0.238115, 0.141672, 0.203359, 0.225632, 0.246749, 0.252745, 0.183884, -12.3224, -19.4036, -11.6062, -18.4084, 622.367, 7.22106, 169.362, 1, 1, 1, 0.535799, 0.513147, 0.474496]
+        norm_std: [0.0685096, 0.0409998, 0.0306484, 0.0682978, 0.0659445, 0.0593548, 0.0644182, 0.0677102, 0.0965915, 0.0949952, 3.25394, 4.50616, 3.21181, 4.09875, 475.515, 7.54008, 95.1647, 0, 0, 0, 0.175249, 0.145898, 0.146712]
+
+optimization_space:
+  lr:
+    min: 1e-6
+    max: 1e-3
+    type: real
+    log: true
+  # lr_overrides:
+  #   encoder:
+  #     min: 1.0e-6
+  #     max: 1.0e-4
+  #     type: real
+  #     log: true
+  # model_args:
+  #   decoder_channels:
+  #     - 128
+  #     - 256
+  #     - 512
+  #   decoder_pool_scales:
+  #     - [1, 2, 3, 6]

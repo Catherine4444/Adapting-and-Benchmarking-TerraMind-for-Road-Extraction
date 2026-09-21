@@ -1,0 +1,99 @@
+seed_everything: 0
+
+trainer:
+  max_epochs: 20
+  accelerator: auto
+  strategy: auto
+  devices: auto
+  precision: bf16-mixed
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 20
+  logger:
+    class_path: lightning.pytorch.loggers.WandbLogger
+    init_args:
+      project: lora_linear_mlp_modules_hpc_runs_rosa
+      log_model: true
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        dirpath: checkpoints/lora_linear_mlp_modules/
+        filename: tm_base_lora_linear_mlp_mod
+        monitor: val/IoU_Road
+        mode: max
+        save_top_k: 1
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+      init_args:
+        logging_interval: epoch
+    - class_path: lightning.pytorch.callbacks.EarlyStopping
+      init_args:
+        monitor: val/IoU_Road
+        patience: 20
+        mode: max
+    - class_path: custom_modules.callbacks.PredictionWriter
+      init_args:
+        output_dir: /kaggle/working/predictions/panels/lora_linear_mlp_modules
+        rgb_key: S2L2A
+        rgb_indices: [0, 1, 2]
+        positive_class: 1
+        filename_stat: iou
+  enable_checkpointing: true
+
+model:
+  class_path: terratorch.tasks.SemanticSegmentationTask
+  init_args:
+    model_factory: EncoderDecoderFactory
+    model_args:
+      backbone: terramind_v1_base
+      backbone_img_size: 256
+      backbone_pretrained: true
+      backbone_modalities:
+        - S2L2A
+        - S1GRD
+      backbone_bands:
+        S2L2A:
+          - RED
+          - GREEN
+          - BLUE
+          - RED_EDGE_1
+          - RED_EDGE_2
+          - RED_EDGE_3
+          - NIR_NARROW
+          - NIR_BROAD
+          - SWIR_1
+          - SWIR_2
+        S1GRD:
+          - VV
+          - VH
+      necks:
+        - name: SelectIndices
+          indices: [-1]
+        - name: ReshapeTokensToImage
+      decoder: LinearDecoder
+      decoder_upsampling_size: 16
+      decoder_num_classes: 2
+      peft_config:
+        method: LORA
+        peft_config_kwargs:
+          lora_alpha: 1
+          r: 16   # <- patched per grid point
+          target_modules:
+            - mlp.fc1
+            - mlp.fc2
+            - mlp.fc3
+          init_lora_weights: gaussian
+        replace_qkv: null
+      rescale: false
+      num_classes: 2
+    loss: dice
+    ignore_index: -1
+    freeze_backbone: false
+    optimizer: AdamW
+    lr: 0.001077998945050814
+    scheduler: ReduceLROnPlateau
+    scheduler_hparams:
+      patience: 4
+      factor: 0.5
+    class_names: ["Background", "Road"]
+    plot_on_val: false
+
+data: ../rosa_data/base_data.yml

@@ -1,0 +1,70 @@
+experiment_name: dlinknet_baseline
+storage_uri: sqlite:////home/lxxcat004/InstaRoad/runs/dlinknet_baseline/mlflow.db
+n_trials: 16
+run_repetitions: 3
+save_models: false
+optimization_space:
+  lr:
+    log: true
+    max: 1e-1
+    min: 1e-5
+    type: real
+
+defaults:
+  trainer_args:
+    max_epochs: 20
+    check_val_every_n_epoch: 1
+    log_every_n_steps: 20
+    precision: bf16-mixed
+    enable_checkpointing: false
+  terratorch_task:
+    model_factory: DinkNetModelFactory
+    model_args:
+      backbone: dinknet34      # dummy value, only used by terratorch_iterate for run naming/MLflow tags
+      framework: dinknet       # dummy value, only used as an MLflow tag when "decoder" key isn't present
+      bands:
+        - RED
+        - GREEN
+        - BLUE
+        - RED_EDGE_1
+        - RED_EDGE_2
+        - RED_EDGE_3
+        - NIR_NARROW
+        - NIR_BROAD
+        - SWIR_1
+        - SWIR_2
+        - VV
+        - VH
+      num_classes: 2
+    loss: dice
+    ignore_index: -1
+    freeze_backbone: false
+    optimizer: AdamW
+    scheduler: ReduceLROnPlateau
+    scheduler_hparams:
+      patience: 4
+      factor: 0.5
+    class_names: ["Background", "Road"]
+
+
+tasks:
+  - name: rosa_dlinknet_baseline
+    type: segmentation
+    metric: val/loss
+    direction: min
+    early_prune: true
+    datamodule:
+      class_path: custom_modules.tm_datasets.RoadDataModule
+      init_args:
+        dataset_dir: /home/lxxcat004/InstaRoad/ROSADataset 
+        bands: [1,2,3,4,5,6,7,8,9,10,11,12]
+        batch_size: 8
+        num_workers: 6
+        image_size: 256
+        length: null                
+        normalize: true
+        transform_train: true
+        modality_output: "stacked"
+        norm_source: manual
+        norm_mean: [0.118542, 0.0900151, 0.059118, 0.23897, 0.152557, 0.207308, 0.228655, 0.246422, 0.267869, 0.204559, -12.6379, -19.5885, -11.2967, -18.2211, 690.628, 7.15673, 171.245, 1, 1, 1, 0.551126, 0.522076, 0.48006]
+        norm_std: [0.0737832, 0.0416436, 0.0296637, 0.0688163, 0.07177, 0.0614309, 0.0655398, 0.0677955, 0.103342, 0.105481, 3.53385, 3.96946, 3.24179, 3.59768, 471.217, 7.33572, 95.0004, 0, 0, 0, 0.177911, 0.147157, 0.147469]
