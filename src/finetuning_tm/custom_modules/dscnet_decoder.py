@@ -1,8 +1,8 @@
 import torch
 from torch import nn, cat
 from terratorch.registry import TERRATORCH_DECODER_REGISTRY
-from finetuning_tm.custom_modules.dscnet.S3_DSConv import DSConv
-from finetuning_tm.custom_modules.dscnet.S3_DSCNet import EncoderConv, DecoderConv
+from .dscnet.S3_DSConv import DSConv
+from .dscnet.S3_DSCNet import EncoderConv, DecoderConv
 
 @TERRATORCH_DECODER_REGISTRY.register
 class TerraTorchDSCNetDecoder(nn.Module):
