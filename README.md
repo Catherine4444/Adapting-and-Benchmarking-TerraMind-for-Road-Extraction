@@ -8,15 +8,15 @@ Automating road extraction from open, 10 m-resolution remote sensing imagery is 
 
 ## Project Structure
 The project code is organised as follows. 
-```text
-config/ YAML config files for TerraTorch CLI to tune and train TerraMind and the baseline models on the UCT HPC (and get model checkpoints). Additionally the benchmark config is for the `benchmarking` module used during test set evaluation
-custom_modules/ the custom modules needed for the YAML configurations. 
-hpc_scripts/ The bash and sbatch scripts to run the config files 
-kaggle_prep/ The setup script and code for the kaggle environments. 
-kaggle_prototypes/ The Juypiter notebooks used in prototyping and conducting preliminary experiments 
-test_results.ipynb The notebook running th final test split results using previously obtained checkpoints. It uses the external `benchmarking` module, TerraTorch test, and TerraTorch Predict.
-```
-The project is mostly self contained in the folder. The only external module is the benchmarking module that is used in the test_result.ipynb. 
+
+- `config/` YAML config files for TerraTorch CLI to tune and train TerraMind and the baseline models on the UCT HPC (and get model checkpoints). Additionally the benchmark config is for the `benchmarking` module used during test set evaluation
+- `custom_modules/` the custom modules needed for the YAML configurations. 
+- `hpc_scripts/` The bash and sbatch scripts to run the config files 
+- `kaggle_prep/` The setup script and code for the kaggle environments. 
+- `kaggle_prototypes/` The Juypiter notebooks used in prototyping and conducting preliminary experiments 
+- `test_results.ipynb` The notebook running th final test split results using previously obtained checkpoints. It uses the external `benchmarking` module, TerraTorch test, and TerraTorch Predict.
+
+
 
 ## Requirements
 The project uses uv packet manager and to set up the relevant virtual environment, run the following:
@@ -25,5 +25,9 @@ pip install uv
 uv pip install --system -e "InstaRoadPrototype[terra,unet, dlinknet, finetuning_tm]"
 ```
 
-
-
+## Acknowledgements
+The following code was extracted from others, with the relevant modifications for this project:
+- Benchmarking module `src/benchmarking` by Jing Yeh 
+- Dataset related classes in `src/finetuning_tm/custom_modules/tm_datasets.py` (`RoadTileDataset` `TileCropDataset` `RoadDataModule`) by Kelvin Wei
+- DSCNet model code `src/finetuning_tm/custom_modules/dscnet/` from  https://github.com/YaoleiQi/DSCNet
+- D-LinkNet model code `src/finetuning_tm/custom_modules/dinknet.py` from https://github.com/zlckanata/DeepGlobe-Road-Extraction-Challenge/blob/master/networks/dinknet.py
