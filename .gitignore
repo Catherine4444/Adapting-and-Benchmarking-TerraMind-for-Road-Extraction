@@ -1,0 +1,44 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.env
+data/
+.DS_Store
+
+*/*.tif
+*/*.tiff
+*/*.state
+*/*.parquet
+*/.DS_Store
+*/*.npy
+
+# Dummy data for testing/benchmarking
+**/dummy_data/
+checkpoints/**
+lightning_logs/**
+predictions/**
+wandb/**
+save/**
+
+# resolved dataset root, written by src/geosamroad/scripts/local/setup_env.bash
+.geosamroad_dataset_dir
+
+models/*
+src/*/examples/*
+
+
+# HPC
+logs/
+resume_tm/
+artefacts/
+*.sif
+
+getroad/
+benchmarks
