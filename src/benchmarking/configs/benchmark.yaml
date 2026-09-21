@@ -1,0 +1,41 @@
+# Benchmarking recipe -- one file driving eval + statistical analysis. Reuse this
+# config for each command (explicit flags still override):
+#
+#   python -m benchmarking.cli --config src/benchmarking/configs/benchmark.yaml \
+#       eval --checkpoint checkpoints/unet_seed0/last.ckpt --model-name unet_cdngi --seed 0
+#   python -m benchmarking.cli --config src/benchmarking/configs/benchmark.yaml variance --model-name unet_cdngi
+#   python -m benchmarking.cli --config src/benchmarking/configs/benchmark.yaml compare --model-a unet_cdngi --model-b sr_r0_cdngi
+#   python -m benchmarking.cli --config src/benchmarking/configs/benchmark.yaml report --out benchmarks/report.md
+
+# Score a checkpoint over the split's footprint chips -> the sharded store.
+# checkpoint / model-name / seed / model come from the CLI (per-run knobs).
+eval:
+  dataset_dir: /Volumes/MacOSFiles/ROSA_CDNGI_dense
+  store_dir: benchmarks
+  split: test
+  cell_m: 2560.0        # footprint chip edge: 256 px @ 10 m = 1024 px @ 2.5 m
+  batch_size: 8
+  check: first          # tp+fn-vs-mask invariant on the first tile
+  tile_metric: [apls]   # tile-level plugins (benchmarking.tile_metrics);
+                        # apls -> tiles/ shard, paired on tile_id downstream
+
+# Paired bootstrap CI + Wilcoxon between two model_names (pass --model-a/--model-b).
+# Refuses cross-GT comparisons (different gt_res_m / label_source) unless --force.
+compare:
+  store_dir: benchmarks
+  metric: f1
+  n_boot: 2000
+
+# Cross-seed mean +/- std for one model (pass --model-name).
+variance:
+  store_dir: benchmarks
+  metric: iou
+  aggregation: micro
+
+# Per-model mean +/- std + all pairwise comparisons; repeat --metric for more.
+# NB `apls` requires the store's runs to have been evaluated with
+# `tile_metric: [apls]`; drop it here for stores benched without the plugin.
+report:
+  store_dir: benchmarks
+  metric: [iou, f1, apls]
+  aggregation: micro
